@@ -138,6 +138,46 @@
     .tag input{ margin-right:6px; vertical-align:middle }
     .tag.modall{ border-style:solid; color:#e8eefc }
     .tag.modall small{ color:var(--muted) }
+
+    /* Modalidades (lista) */
+    .modAllLine{
+      display:flex; align-items:center; gap:10px;
+      margin-top:8px;
+      padding:10px 10px;
+      border:1px solid var(--line);
+      border-radius:12px;
+      background:rgba(10,19,39,.55);
+      font-size:13px;
+      color:var(--text);
+      user-select:none;
+    }
+    .modAllLine input{ width:auto; margin:0 }
+    .modbox{
+      margin-top:10px;
+      border:1px solid var(--line);
+      border-radius:12px;
+      background:rgba(10,19,39,.35);
+      padding:10px;
+    }
+    .modlist{
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      max-height:220px;
+      overflow:auto;
+      padding-right:4px;
+    }
+    .moditem{
+      display:flex; align-items:center; gap:10px;
+      padding:8px 10px;
+      border-radius:10px;
+      border:1px solid rgba(36,50,85,.55);
+      background:rgba(10,19,39,.35);
+      color:var(--text);
+      font-size:13px;
+    }
+    .moditem input{ width:auto; margin:0 }
+
     .right{display:flex; gap:10px; align-items:center; flex-wrap:wrap; justify-content:flex-end}
     .kpi{
       display:flex; gap:10px; flex-wrap:wrap;
@@ -248,27 +288,31 @@
           <div>
             
 <label>Modalidades (obrigatório no PNCP)</label>
-<div class="small">Se eu não quiser restringir, deixo <b>Todas</b> marcado.</div>
+<div class="small">Marque <b>Todas</b> para consultar automaticamente 1–13, ou desmarque e escolha modalidades específicas.</div>
 
-<div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:8px" aria-label="Seleção de modalidades">
-  <label class="tag modall"><input type="checkbox" id="modalAll" checked />Todas</label>
-  <label class="tag"><input type="checkbox" class="modCheck" value="1" />1</label>
-  <label class="tag"><input type="checkbox" class="modCheck" value="2" />2</label>
-  <label class="tag"><input type="checkbox" class="modCheck" value="3" />3</label>
-  <label class="tag"><input type="checkbox" class="modCheck" value="4" />4</label>
-  <label class="tag"><input type="checkbox" class="modCheck" value="5" />5</label>
-  <label class="tag"><input type="checkbox" class="modCheck" value="6" />6</label>
-  <label class="tag"><input type="checkbox" class="modCheck" value="7" />7</label>
-  <label class="tag"><input type="checkbox" class="modCheck" value="8" />8</label>
-  <label class="tag"><input type="checkbox" class="modCheck" value="9" />9</label>
-  <label class="tag"><input type="checkbox" class="modCheck" value="10" />10</label>
-  <label class="tag"><input type="checkbox" class="modCheck" value="11" />11</label>
-  <label class="tag"><input type="checkbox" class="modCheck" value="12" />12</label>
-  <label class="tag"><input type="checkbox" class="modCheck" value="13" />13</label>
+<label class="modAllLine"><input type="checkbox" id="modalAll" checked /> Todas (consultar 1–13)</label>
+
+<div id="modalSpecificBox" class="modbox" aria-label="Modalidades específicas (1–13)">
+  <div class="small" style="margin:0 0 8px">Modalidades específicas:</div>
+  <div class="modlist">
+    <label class="moditem"><input type="checkbox" class="modCheck" value="1" /> 1</label>
+    <label class="moditem"><input type="checkbox" class="modCheck" value="2" /> 2</label>
+    <label class="moditem"><input type="checkbox" class="modCheck" value="3" /> 3</label>
+    <label class="moditem"><input type="checkbox" class="modCheck" value="4" /> 4</label>
+    <label class="moditem"><input type="checkbox" class="modCheck" value="5" /> 5</label>
+    <label class="moditem"><input type="checkbox" class="modCheck" value="6" /> 6</label>
+    <label class="moditem"><input type="checkbox" class="modCheck" value="7" /> 7</label>
+    <label class="moditem"><input type="checkbox" class="modCheck" value="8" /> 8</label>
+    <label class="moditem"><input type="checkbox" class="modCheck" value="9" /> 9</label>
+    <label class="moditem"><input type="checkbox" class="modCheck" value="10" /> 10</label>
+    <label class="moditem"><input type="checkbox" class="modCheck" value="11" /> 11</label>
+    <label class="moditem"><input type="checkbox" class="modCheck" value="12" /> 12</label>
+    <label class="moditem"><input type="checkbox" class="modCheck" value="13" /> 13</label>
+  </div>
 </div>
 
 <div class="small" style="margin-top:8px">
-  Obs.: os códigos 1–13 são os códigos de modalidade do PNCP. Eu consulto uma modalidade por vez e junto os resultados (deduplicando pelo <span class="mono">numeroControlePNCP</span>). Se eu marcar <b>Todas</b>, o app faz mais requisições (pode ficar mais lento).
+  Obs.: o PNCP exige <span class="mono">codigoModalidadeContratacao</span>. Quando “Todas” está marcado, o app faz 13 consultas e junta os resultados (deduplicando por <span class="mono">numeroControlePNCP</span>).
 </div>
 
           </div>
@@ -306,10 +350,7 @@
         <div class="hint" id="hintBox">
           Dica prática: para achar licitações do meu ramo, eu testo 3 a 6 palavras-chave (sinônimos) e salvo “consultas padrão”.
           Ex.: <span class="tag">automação</span><span class="tag">painel elétrico</span><span class="tag">inversor</span><span class="tag">CLP</span><span class="tag">material elétrico</span><span class="tag">NR-10</span>.
-          <div class="small" style="margin-top:8px">
-            Se eu receber erro de <b>CORS</b> no navegador, a consulta pode exigir um proxy local (eu explico no rodapé do app).
-          </div>
-        </div>
+</div>
 
         <div class="msg" id="logBox" style="display:none"></div>
       </div>
@@ -543,12 +584,17 @@
   function applyModalUI(all, selected = []) {
     const allBox = el("modalAll");
     const checks = Array.from(document.querySelectorAll(".modCheck"));
+    const specBox = el("modalSpecificBox");
     if (!allBox) return;
 
     allBox.checked = !!all;
 
+    // quando "Todas" estiver marcado, eu escondo a lista para não poluir a tela
+    if (specBox) specBox.style.display = allBox.checked ? "none" : "block";
+
     if (allBox.checked) {
-      checks.forEach(c => { c.checked = true; c.disabled = true; });
+      // não preciso marcar 1–13 na tela; por baixo eu consulto todas
+      checks.forEach(c => { c.checked = false; c.disabled = true; });
     } else {
       const sel = new Set(selected.map(String));
       checks.forEach(c => { c.disabled = false; c.checked = sel.has(String(c.value)); });
@@ -1069,6 +1115,8 @@
 
   loadForm();
   syncDateFieldWithScope(true);
+  // ajusto a visibilidade da lista de modalidades conforme o estado carregado
+  if (el("modalAll")) applyModalUI(!!el("modalAll").checked, getSelectedModalidades());
   // Modalidades: padrão é "Todas"
   if (el("modalAll")) {
     // primeiro uso: mantém "Todas" ativo
