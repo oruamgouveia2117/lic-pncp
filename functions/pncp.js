@@ -5,21 +5,18 @@
 exports.handler = async (event) => {
   const upstreamBase = "https://pncp.gov.br/api/consulta/v1/";
 
-  // Netlify pode repassar o path original (/api/consulta/v1/...) ou o path da function (/.netlify/functions/...)
-  const fnPrefix = "/.netlify/functions/pncp/";
-  const apiPrefix = "/api/consulta/v1/";
+  const prefixes = [
+    "/.netlify/functions/pncp/",
+    "/api/consulta/v1/",
+  ];
   const path = (event.path || "");
-
-  // tenta extrair o ":splat" de forma resiliente
   let splat = "";
-  if (typeof event.pathParameters?.splat === "string" && event.pathParameters.splat) {
-    splat = event.pathParameters.splat;
-  } else if (path.startsWith(fnPrefix)) {
-    splat = path.slice(fnPrefix.length);
-  } else if (path.startsWith(apiPrefix)) {
-    splat = path.slice(apiPrefix.length);
+  for (const pre of prefixes) {
+    if (path.startsWith(pre)) {
+      splat = path.slice(pre.length);
+      break;
+    }
   }
-  splat = splat.replace(/^\/+/, "");
 if (!splat || splat.includes("..")) {
     return {
       statusCode: 400,
@@ -27,9 +24,25 @@ if (!splat || splat.includes("..")) {
       body: JSON.stringify({ error: "Invalid path" }),
     };
   }
+  const rawQS = (event.rawQueryString && String(event.rawQueryString).trim()) ? String(event.rawQueryString) : "";
+  let builtQS = rawQS;
 
-  const qs = event.rawQueryString ? `?${event.rawQueryString}` : "";
-  const url = `${upstreamBase}${splat}${qs}`;
+  if (!builtQS) {
+    const mv = event.multiValueQueryStringParameters;
+    if (mv && typeof mv === "object") {
+      const usp = new URLSearchParams();
+      for (const [k, vv] of Object.entries(mv)) {
+        const arr = Array.isArray(vv) ? vv : [vv];
+        for (const v of arr) usp.append(k, v);
+      }
+      builtQS = usp.toString();
+    } else {
+      builtQS = new URLSearchParams(event.queryStringParameters || {}).toString();
+    }
+  }
+
+  const qs = builtQS ? `?${builtQS}` : "";
+const url = `${upstreamBase}${splat}${qs}`;
 
   try {
     const resp = await fetch(url, {
