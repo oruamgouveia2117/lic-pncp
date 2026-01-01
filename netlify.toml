@@ -1,0 +1,11 @@
+[build]
+  publish = "."
+  functions = "functions"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+[[redirects]]
+  from = "/api/consulta/v1/*"
+  to = "/.netlify/functions/pncp/:splat"
+  status = 200

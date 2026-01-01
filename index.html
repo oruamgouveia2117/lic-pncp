@@ -1,0 +1,1046 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Buscador de Licitações (PNCP) — por UF, período e palavra-chave</title>
+  <style>
+    :root{
+      --bg:#0b1220; --panel:#111b2e; --panel2:#0f1729; --text:#e8eefc;
+      --muted:#a9b7da; --line:#243255; --ok:#25d366; --warn:#ffcc00; --bad:#ff5a6a;
+      --btn:#2c63ff; --btn2:#1e2a44;
+      --shadow: 0 10px 30px rgba(0,0,0,.35);
+      --radius:14px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; font-family:var(--sans); background:linear-gradient(180deg, #081022 0%, #050a14 70%);
+      color:var(--text);
+    }
+    header{
+      padding:22px 18px;
+      max-width:1200px; margin:0 auto;
+    }
+    h1{margin:0 0 6px; font-size:20px; font-weight:800; letter-spacing:.2px}
+    .sub{margin:0; color:var(--muted); font-size:13px; line-height:1.35}
+    .wrap{max-width:1200px; margin:0 auto; padding:0 18px 26px}
+    .grid{
+      display:grid; grid-template-columns: 420px 1fr; gap:16px;
+    }
+    @media (max-width: 980px){
+      .grid{grid-template-columns: 1fr;}
+    }
+    .card{
+      background:linear-gradient(180deg, var(--panel) 0%, var(--panel2) 100%);
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+    .card .hd{
+      padding:14px 14px 10px;
+      border-bottom:1px solid var(--line);
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+    }
+    .card .hd strong{font-size:13px; letter-spacing:.2px}
+    .card .bd{padding:14px}
+    .row{display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:10px}
+    .row1{display:grid; grid-template-columns: 1fr; gap:10px; margin-bottom:10px}
+    label{display:block; font-size:12px; color:var(--muted); margin:0 0 6px}
+    input, select, textarea{
+      width:100%;
+      padding:10px 10px;
+      border-radius:12px;
+      border:1px solid var(--line);
+      background:#0a1327;
+      color:var(--text);
+      outline:none;
+    }
+    input::placeholder, textarea::placeholder{color:#6f82b3}
+    textarea{min-height:74px; resize:vertical}
+    .btns{display:flex; flex-wrap:wrap; gap:10px; margin-top:10px}
+    button{
+      border:0; cursor:pointer;
+      padding:10px 12px;
+      border-radius:12px;
+      font-weight:700;
+      color:var(--text);
+      background:var(--btn);
+    }
+    button.secondary{background:var(--btn2); border:1px solid var(--line); color:var(--text)}
+    button.ghost{background:transparent; border:1px dashed var(--line); color:var(--muted)}
+    button:disabled{opacity:.55; cursor:not-allowed}
+    .hint{
+      margin-top:10px;
+      padding:10px 10px;
+      border-radius:12px;
+      border:1px solid var(--line);
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.35;
+      background:rgba(10,19,39,.55);
+    }
+    .statusbar{
+      display:flex; gap:10px; flex-wrap:wrap; align-items:center; justify-content:space-between;
+      padding:12px 14px; border-bottom:1px solid var(--line);
+      background:rgba(10,19,39,.65);
+    }
+    .pill{
+      display:inline-flex; gap:8px; align-items:center;
+      padding:6px 10px; border-radius:999px;
+      border:1px solid var(--line);
+      color:var(--muted); font-size:12px;
+    }
+    .pill b{color:var(--text)}
+    .pill.ok{border-color:rgba(37,211,102,.35); color:#bff1cf}
+    .pill.warn{border-color:rgba(255,204,0,.35); color:#ffe48a}
+    .pill.bad{border-color:rgba(255,90,106,.35); color:#ffb3bb}
+    .mono{font-family:var(--mono)}
+    .tablewrap{overflow:auto}
+    table{
+      width:100%;
+      border-collapse:separate;
+      border-spacing:0;
+      min-width: 980px;
+    }
+    thead th{
+      position:sticky; top:0;
+      background:#0a1327;
+      border-bottom:1px solid var(--line);
+      padding:10px 10px;
+      text-align:left;
+      font-size:12px;
+      color:var(--muted);
+      white-space:nowrap;
+    }
+    tbody td{
+      border-bottom:1px solid rgba(36,50,85,.6);
+      padding:10px 10px;
+      font-size:13px;
+      vertical-align:top;
+    }
+    tbody tr:hover td{background:rgba(44,99,255,.06)}
+    a{color:#9db6ff; text-decoration:none}
+    a:hover{text-decoration:underline}
+    .small{font-size:12px; color:var(--muted)}
+    .tag{
+      display:inline-block; padding:3px 8px;
+      border-radius:999px;
+      border:1px solid var(--line);
+      font-size:12px; color:var(--muted);
+      background:rgba(10,19,39,.55);
+      margin-right:6px; margin-bottom:6px;
+      white-space:nowrap;
+    }
+    .right{display:flex; gap:10px; align-items:center; flex-wrap:wrap; justify-content:flex-end}
+    .kpi{
+      display:flex; gap:10px; flex-wrap:wrap;
+    }
+    .kpi .box{
+      border:1px solid var(--line);
+      border-radius:12px;
+      padding:8px 10px;
+      background:rgba(10,19,39,.55);
+      min-width: 130px;
+    }
+    .kpi .box .t{font-size:11px; color:var(--muted); margin-bottom:4px}
+    .kpi .box .v{font-size:15px; font-weight:800}
+    .msg{
+      margin-top:10px;
+      border:1px solid var(--line);
+      background:rgba(10,19,39,.55);
+      border-radius:12px;
+      padding:10px 10px;
+      font-size:12px;
+      color:var(--muted);
+      line-height:1.35;
+      white-space:pre-wrap;
+    }
+    .danger{color:#ffb3bb}
+  
+.note{background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;padding:10px 12px;margin:10px 0;font-size:14px}
+</style>
+</head>
+
+<body>
+<header>
+  <h1>Buscador de Licitações (Brasil / PNCP)</h1>
+  <div class="note">
+    <strong>Atenção:</strong> o PNCP bloqueia requisições diretas do navegador (CORS). 
+    Abra esta página pelo servidor proxy (ex.: <span class="mono">http://127.0.0.1:5000</span>).
+  </div>
+  <p class="sub">
+    Eu filtro por palavra-chave (ramo), UF e período. A fonte é a API pública do PNCP:
+    <span class="mono">/api/consulta/v1/contratacoes/proposta</span> e <span class="mono">/api/consulta/v1/contratacoes/publicacao</span>.
+  </p>
+</header>
+
+<div class="wrap">
+  <div class="grid">
+
+    <!-- PAINEL DE FILTROS -->
+    <section class="card">
+      <div class="hd">
+        <strong>Filtros</strong>
+        <span class="small mono" id="todayLabel"></span>
+      </div>
+      <div class="bd">
+        <div class="row1">
+          <div>
+            <label for="keywords">Ramo / palavra-chave (separe por espaço)</label>
+            <input id="keywords" placeholder="Ex.: automação CLP inversor WEG painel elétrico" />
+            <div class="small">Eu aplico esse filtro no texto do <b>objeto</b> e na <b>informação complementar</b>.</div>
+          </div>
+        </div>
+
+        <div class="row">
+          <div>
+            <label for="scope">Fonte / tipo de busca</label>
+            <select id="scope">
+              <option value="proposta">Propostas em aberto (recebendo proposta)</option>
+              <option value="publicacao">Por data de publicação (varredura)</option>
+            </select>
+          </div>
+          <div>
+            <label for="uf">UF (ou Brasil todo)</label>
+            <select id="uf">
+              <option value="">Brasil (todas as UFs)</option>
+              <option value="AC">AC</option><option value="AL">AL</option><option value="AP">AP</option><option value="AM">AM</option>
+              <option value="BA">BA</option><option value="CE">CE</option><option value="DF">DF</option><option value="ES">ES</option>
+              <option value="GO">GO</option><option value="MA">MA</option><option value="MT">MT</option><option value="MS">MS</option>
+              <option value="MG">MG</option><option value="PA">PA</option><option value="PB">PB</option><option value="PR">PR</option>
+              <option value="PE">PE</option><option value="PI">PI</option><option value="RJ">RJ</option><option value="RN">RN</option>
+              <option value="RS">RS</option><option value="RO">RO</option><option value="RR">RR</option><option value="SC">SC</option>
+              <option value="SP">SP</option><option value="SE">SE</option><option value="TO">TO</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="row">
+          <div>
+            <label for="dateStart">Data inicial (período)</label>
+            <input id="dateStart" type="date" />
+          </div>
+          <div>
+            <label for="dateEnd">Data final (período)</label>
+            <input id="dateEnd" type="date" />
+          </div>
+        </div>
+
+        <div class="row">
+          <div>
+            <label for="dateField">Campo de data para filtrar</label>
+            <select id="dateField">
+              <option value="encerramento">Encerramento de propostas</option>
+              <option value="abertura">Abertura de propostas</option>
+              <option value="publicacao">Publicação no PNCP</option>
+              <option value="atualizacao">Atualização</option>
+            </select>
+          </div>
+          <div>
+            <label for="modalidade">Código(s) de modalidade (obrigatório)</label>
+            <input id="modalidade" placeholder="Ex.: 6,4,8 (separe por vírgula) — ou ALL" inputmode="text" />
+            <div class="small">Obrigatório no PNCP. Aceita lista (ex.: <span class="mono">6,4,8</span>) ou <span class="mono">ALL</span> (1–13). Referência: tabela do manual PNCP.</div>
+          </div>
+        </div>
+
+        <div class="row">
+          <div>
+            <label for="pageSize">Tamanho da página</label>
+            <select id="pageSize">
+              <option value="50">50</option>
+              <option value="100">100</option>
+              <option value="200">200</option>
+              <option value="500">500 (máximo)</option>
+            </select>
+          </div>
+          <div>
+            <label for="maxPages">Máx. páginas (limite de segurança)</label>
+            <select id="maxPages">
+              <option value="2">2</option>
+              <option value="5" selected>5</option>
+              <option value="10">10</option>
+              <option value="20">20</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="row1">
+          <div>
+            <label for="advanced">Filtros avançados (opcional)</label>
+            <textarea id="advanced" placeholder='JSON simples. Ex.: {"cnpj":"00059311000126","codigoMunicipioIbge":"4202404"}'></textarea>
+            <div class="small">Campos aceitos (dependem do endpoint): <span class="mono">cnpj</span>, <span class="mono">codigoMunicipioIbge</span>, <span class="mono">codigoUnidadeAdministrativa</span>, <span class="mono">idUsuario</span>.</div>
+          </div>
+        </div>
+
+        <div class="btns">
+          <button id="btnSearch">Buscar</button>
+          <button class="secondary" id="btnReset" type="button">Limpar</button>
+          <button class="ghost" id="btnQuick30" type="button">Próximos 30 dias</button>
+          <button class="ghost" id="btnQuick60" type="button">Próximos 60 dias</button>
+          <button class="ghost" id="btnQuick90" type="button">Próximos 90 dias</button>
+        </div>
+
+        <div class="hint" id="hintBox">
+          Dica prática: para achar licitações do meu ramo, eu testo 3 a 6 palavras-chave (sinônimos) e salvo “consultas padrão”.
+          Ex.: <span class="tag">automação</span><span class="tag">painel elétrico</span><span class="tag">inversor</span><span class="tag">CLP</span><span class="tag">material elétrico</span><span class="tag">NR-10</span>.
+          <div class="small" style="margin-top:8px">
+            Se eu receber erro de <b>CORS</b> no navegador, a consulta pode exigir um proxy local (eu explico no rodapé do app).
+          </div>
+        </div>
+
+        <div class="msg" id="logBox" style="display:none"></div>
+      </div>
+    </section>
+
+    <!-- RESULTADOS -->
+    <section class="card">
+      <div class="statusbar">
+        <div class="kpi">
+          <div class="box">
+            <div class="t">Registros exibidos</div>
+            <div class="v" id="kpiShown">0</div>
+          </div>
+          <div class="box">
+            <div class="t">Registros brutos</div>
+            <div class="v" id="kpiRaw">0</div>
+          </div>
+          <div class="box">
+            <div class="t">Última busca</div>
+            <div class="v" id="kpiTime">—</div>
+          </div>
+        </div>
+        <div class="right">
+          <span class="pill" id="apiPill"><b>API</b><span class="mono">PNCP</span></span>
+          <button class="secondary" id="btnExportCsv" disabled>Exportar CSV</button>
+          <button class="secondary" id="btnExportJson" disabled>Exportar JSON</button>
+        </div>
+      </div>
+
+      <div class="bd">
+        <div class="small" style="margin-bottom:10px">
+          Eu mostro: modalidade, órgão, UF/município, datas, valor estimado (quando existir) e link do sistema de origem (<span class="mono">linkSistemaOrigem</span>).
+        </div>
+
+        <div class="tablewrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Datas</th>
+                <th>Modalidade / Situação</th>
+                <th>Órgão / UF</th>
+                <th>Objeto</th>
+                <th>Valor (estimado)</th>
+                <th>Links</th>
+              </tr>
+            </thead>
+            <tbody id="tbody">
+              <tr><td colspan="6" class="small">Faça uma busca para listar resultados.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="hint" style="margin-top:12px">
+          <b>Se der erro de CORS (Failed to fetch):</b> eu rodo um proxy simples local (ex.: Flask) e aponto o app para ele.
+          Como alternativa, eu posso abrir a busca direto no PNCP pelo navegador e usar este HTML só como “organizador”.
+          <div class="small" style="margin-top:6px">
+            Exemplo de URL base usada aqui: <span class="mono">/api/consulta/v1</span>.
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<script>
+(() => {
+  const API_BASE = "/api/consulta/v1";
+
+  const el = (id) => document.getElementById(id);
+
+  const state = {
+    raw: [],
+    filtered: [],
+    lastUrl: "",
+  };
+
+  function nowBRLabel() {
+    // Mostro somente data (o horário local do navegador pode variar, mas é suficiente aqui)
+    const d = new Date();
+    return d.toLocaleDateString("pt-BR");
+  }
+
+  function yyyyMMddFromDateInput(v) {
+    // v: "YYYY-MM-DD" -> "YYYYMMDD"
+    if (!v) return "";
+    return v.replaceAll("-", "");
+  }
+
+  function safeDate(v) {
+    // aceita ISO, "YYYY-MM-DD", "YYYY-MM-DDTHH:mm:ss" etc.
+    if (!v) return null;
+    const d = new Date(v);
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  function formatBRDateTime(v) {
+    const d = safeDate(v);
+    if (!d) return "—";
+    return d.toLocaleString("pt-BR");
+  }
+
+  function formatBRDate(v) {
+    const d = safeDate(v);
+    if (!d) return "—";
+    return d.toLocaleDateString("pt-BR");
+  }
+
+  function normalizeText(s) {
+    return (s || "")
+      .toString()
+      .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase();
+  }
+
+  function tokenMatch(text, keywords) {
+    const t = normalizeText(text);
+    const ks = normalizeText(keywords).split(/\s+/).filter(Boolean);
+    if (!ks.length) return true;
+    // regra: todos os tokens devem aparecer em algum lugar (AND)
+    return ks.every(k => t.includes(k));
+  }
+
+  function tryParseJson(s) {
+    const txt = (s || "").trim();
+    if (!txt) return null;
+    try { return JSON.parse(txt); } catch { return null; }
+  }
+
+  function extractArray(json) {
+    if (!json) return [];
+    if (Array.isArray(json)) return json;
+    // casos comuns: { data: [...] } ou { items: [...] }
+    if (Array.isArray(json.data)) return json.data;
+    if (Array.isArray(json.items)) return json.items;
+    // fallback: primeira propriedade array
+    for (const k of Object.keys(json)) {
+      if (Array.isArray(json[k])) return json[k];
+    }
+    return [];
+  }
+
+  function pickDateField(item, field) {
+    const map = {
+      encerramento: item.dataEncerramentoProposta || item.dataEncerramentoProp,
+      abertura: item.dataAberturaProposta,
+      publicacao: item.dataPublicacaoPncp || item.dataPublicacaoPNCP || item.dataPublicacao,
+      atualizacao: item.dataAtualizacao
+    };
+    return map[field] || null;
+  }
+
+  function getUF(item) {
+    return item?.unidadeOrgao?.ufSigla
+        || item?.unidadeOrgao?.uf
+        || item?.unidadeSubRogada?.ufSigla
+        || item?.unidadeSubRogada?.uf
+        || "";
+  }
+
+  function getMunicipio(item) {
+    return item?.unidadeOrgao?.municipioNome
+        || item?.unidadeSubRogada?.municipioNome
+        || "";
+  }
+
+  function getOrgao(item) {
+    return item?.orgaoEntidade?.razaosocial || item?.orgaoEntidade?.razaoSocial || "";
+  }
+
+  function getObjeto(item) {
+    return item?.objetoCompra || item?.objeto || "";
+  }
+
+  function getComplemento(item) {
+    return item?.informacaoComplementar || item?.informacoesComplementares || "";
+  }
+
+  function getModalidade(item) {
+    return item?.modalidadeNome || "";
+  }
+
+  function getSituacao(item) {
+    // alguns retornos vêm como string, outros como id/nome
+    return item?.situacaoCompraNome || item?.situacao || "";
+  }
+
+  function getValor(item) {
+    const v = item?.valorTotalEstimado;
+    if (v === null || v === undefined) return "";
+    const n = Number(v);
+    if (Number.isNaN(n)) return String(v);
+    return n.toLocaleString("pt-BR", { style:"currency", currency:"BRL" });
+  }
+
+  function buildEndpointAndParams() {
+    const scope = el("scope").value; // proposta | publicacao
+    const uf = el("uf").value.trim();
+const start = el("dateStart").value;
+    const end = el("dateEnd").value;
+
+    const adv = tryParseJson(el("advanced").value);
+
+    const pageSize = el("pageSize").value;
+    const maxPages = Number(el("maxPages").value);
+
+    let endpoint = "";
+    const params = new URLSearchParams();
+
+    if (scope === "proposta") {
+      endpoint = "/contratacoes/proposta";
+      // no manual: dataFinal obrigatório (AAAAMMDD)
+      params.set("dataFinal", yyyyMMddFromDateInput(end) || yyyyMMddFromDateInput(start) || "");
+if (uf) params.set("uf", uf);
+    } else {
+      endpoint = "/contratacoes/publicacao";
+      params.set("dataInicial", yyyyMMddFromDateInput(start) || "");
+      params.set("dataFinal", yyyyMMddFromDateInput(end) || "");
+if (uf) params.set("uf", uf);
+    }
+
+    if (adv && typeof adv === "object") {
+      for (const [k,v] of Object.entries(adv)) {
+        if (v === null || v === undefined || v === "") continue;
+        params.set(k, String(v));
+      }
+    }
+
+    return { endpoint, params, pageSize, maxPages };
+  }
+
+  function parseModalidadeList(input) {
+    const raw = (input || "").trim();
+    if (!raw) return [];
+    if (/^all$/i.test(raw)) {
+      return Array.from({length: 13}, (_,i)=>String(i+1));
+    }
+    // aceita "6,4,8" ou "6 4 8" ou "6;4;8"
+    const parts = raw.split(/[^0-9]+/).filter(Boolean);
+    const uniq = [...new Set(parts)];
+    // valida 1..13
+    return uniq.filter(x => {
+      const n = Number(x);
+      return Number.isInteger(n) && n >= 1 && n <= 13;
+    });
+  }
+
+  function dedupeByNumeroControlePNCP(items) {
+    const seen = new Set();
+    const out = [];
+    for (const it of items) {
+      const key = it?.numeroControlePNCP || JSON.stringify([it?.orgaoEntidade?.cnpj, it?.anoCompra, it?.sequencialCompra, it?.numeroCompra]);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(it);
+    }
+    return out;
+  }
+
+
+
+  
+  function validateInputs() {
+    const scope = el("scope").value;
+    const start = el("dateStart").value;
+    const end = el("dateEnd").value;
+
+    if (!start && !end) {
+      return "Informe pelo menos uma data (inicial e/ou final).";
+    }
+    if (start && end && start > end) {
+      return "A data inicial não pode ser maior que a data final.";
+    }
+
+    // Regras do manual: ambos serviços exigem codigoModalidadeContratacao
+    const mods = parseModalidadeList(el("modalidade").value);
+    if (!mods.length) {
+      return "Erro: preencha 'Código(s) de modalidade'. Ex.: 6 (Pregão Eletrônico) ou 6,4,8. Você também pode usar ALL (1–13).";
+    }
+    return "";
+  }
+
+
+  async function fetchWithTimeout(url, opts = {}, ms = 20000) {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), ms);
+    try {
+      const res = await fetch(url, { ...opts, signal: ctrl.signal });
+      return res;
+    } finally {
+      clearTimeout(t);
+    }
+  }
+
+  async function fetchAllPages(endpoint, baseParams, pageSize, maxPages) {
+    const all = [];
+    let lastUrl = "";
+
+    for (let page = 1; page <= maxPages; page++) {
+      const params = new URLSearchParams(baseParams.toString());
+      params.set("pagina", String(page));
+      if (pageSize) params.set("tamanhoPagina", String(pageSize));
+
+      const url = `${API_BASE}${endpoint}?${params.toString()}`;
+      lastUrl = url;
+
+      const res = await fetchWithTimeout(url, {
+        method: "GET",
+        headers: { "accept": "*/*" },
+      }, 25000);
+
+      if (res.status === 204) break;
+
+      if (!res.ok) {
+        let detail = "";
+        try { detail = await res.text(); } catch {}
+        throw new Error(`HTTP ${res.status} — ${detail?.slice(0, 400) || "sem detalhes"}`);
+      }
+
+      const json = await res.json();
+      const chunk = extractArray(json);
+
+      if (!chunk.length) break;
+
+      all.push(...chunk);
+
+      // se veio menos que o tamanho da página, provavelmente acabou
+      if (chunk.length < Number(pageSize)) break;
+    }
+
+    state.lastUrl = lastUrl;
+    return all;
+  }
+
+  function filterAndSort(raw) {
+    const keywords = el("keywords").value.trim();
+    const dateField = el("dateField").value;
+
+    const start = el("dateStart").value;
+    const end = el("dateEnd").value;
+
+    const startD = start ? new Date(start + "T00:00:00") : null;
+    const endD = end ? new Date(end + "T23:59:59") : null;
+
+    const out = raw.filter(item => {
+      // filtro por data (local)
+      let dt = safeDate(pickDateField(item, dateField));
+      // fallback: alguns retornos podem não trazer abertura/encerramento
+      if (!dt) {
+        const scope = el("scope").value;
+        if (scope === "publicacao") dt = safeDate(item.dataPublicacaoPncp || item.dataAtualizacao || item.dataAtualizacaoGlobal);
+        else dt = safeDate(item.dataEncerramentoProposta || item.dataAberturaProposta || item.dataPublicacaoPncp || item.dataAtualizacao || item.dataAtualizacaoGlobal);
+      }
+      if (startD && (!dt || dt < startD)) return false;
+      if (endD && (!dt || dt > endD)) return false;
+
+      // filtro por palavra-chave (objeto + complemento + órgão)
+      const text = [
+        getObjeto(item),
+        getComplemento(item),
+        getOrgao(item),
+        getMunicipio(item),
+        getUF(item),
+        getModalidade(item)
+      ].join(" | ");
+
+      return tokenMatch(text, keywords);
+    });
+
+    // ordeno pela data selecionada
+    out.sort((a,b) => {
+      const da = safeDate(pickDateField(a, dateField))?.getTime() || 0;
+      const db = safeDate(pickDateField(b, dateField))?.getTime() || 0;
+      return da - db;
+    });
+
+    return out;
+  }
+
+  function setPill(type, text) {
+    const pill = el("apiPill");
+    pill.classList.remove("ok","warn","bad");
+    if (type) pill.classList.add(type);
+    pill.innerHTML = `<b>API</b><span class="mono">${text}</span>`;
+  }
+
+  function setLog(msg, isDanger=false) {
+    const box = el("logBox");
+    box.style.display = "block";
+    box.textContent = msg;
+    box.classList.toggle("danger", !!isDanger);
+  }
+
+  function clearLog() {
+    const box = el("logBox");
+    box.style.display = "none";
+    box.textContent = "";
+    box.classList.remove("danger");
+  }
+
+  function renderTable(items) {
+    const tb = el("tbody");
+    tb.innerHTML = "";
+
+    if (!items.length) {
+      tb.innerHTML = `<tr><td colspan="6" class="small">Nenhum resultado com os filtros atuais.</td></tr>`;
+      return;
+    }
+
+    const rows = items.map(item => {
+      const abertura = item.dataAberturaProposta ? formatBRDateTime(item.dataAberturaProposta) : "—";
+      const encerr = (item.dataEncerramentoProposta || item.dataEncerramentoProp) ? formatBRDateTime(item.dataEncerramentoProposta || item.dataEncerramentoProp) : "—";
+      const publ = item.dataPublicacaoPncp ? formatBRDate(item.dataPublicacaoPncp) : "—";
+
+      const modalidade = getModalidade(item) || "—";
+      const situacao = getSituacao(item) || "—";
+
+      const orgao = getOrgao(item) || "—";
+      const uf = getUF(item) || "—";
+      const mun = getMunicipio(item);
+      const local = mun ? `${uf} / ${mun}` : uf;
+
+      const objeto = (getObjeto(item) || "—").toString();
+      const compl = (getComplemento(item) || "").toString();
+
+      const val = getValor(item) || "—";
+
+      const linkOrigem = item.linkSistemaOrigem || "";
+      const numCtrl = item.numeroControlePNCP || "";
+
+      const links = [
+        linkOrigem ? `<div><a href="${escapeAttr(linkOrigem)}" target="_blank" rel="noopener">Abrir portal de origem</a></div>` : `<div class="small">Sem link de origem</div>`,
+        numCtrl ? `<div class="small mono">PNCP: ${escapeHtml(numCtrl)} <a href="#" data-copy="${escapeAttr(numCtrl)}">(copiar)</a></div>` : ""
+      ].join("");
+
+      const dates = `
+        <div><span class="small">Abertura:</span> ${escapeHtml(abertura)}</div>
+        <div><span class="small">Encerr.:</span> ${escapeHtml(encerr)}</div>
+        <div><span class="small">Pub.:</span> ${escapeHtml(publ)}</div>
+      `;
+
+      const meta = `
+        <div><b>${escapeHtml(modalidade)}</b></div>
+        <div class="small">${escapeHtml(String(situacao))}</div>
+      `;
+
+      const org = `
+        <div><b>${escapeHtml(orgao)}</b></div>
+        <div class="small">${escapeHtml(local)}</div>
+      `;
+
+      const obj = `
+        <div>${escapeHtml(objeto)}</div>
+        ${compl ? `<div class="small">${escapeHtml(compl.slice(0, 260))}${compl.length>260?"…":""}</div>` : ""}
+      `;
+
+      return `<tr>
+        <td>${dates}</td>
+        <td>${meta}</td>
+        <td>${org}</td>
+        <td>${obj}</td>
+        <td>${escapeHtml(val)}</td>
+        <td>${links}</td>
+      </tr>`;
+    });
+
+    tb.innerHTML = rows.join("");
+
+    // handler copiar
+    tb.querySelectorAll("a[data-copy]").forEach(a => {
+      a.addEventListener("click", (ev) => {
+        ev.preventDefault();
+        const txt = a.getAttribute("data-copy") || "";
+        if (!txt) return;
+        navigator.clipboard?.writeText(txt).then(() => {
+          a.textContent = "(copiado)";
+          setTimeout(()=>a.textContent="(copiar)", 900);
+        }).catch(() => {});
+      });
+    });
+  }
+
+  function escapeHtml(s){
+    return String(s ?? "")
+      .replaceAll("&","&amp;")
+      .replaceAll("<","&lt;")
+      .replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;")
+      .replaceAll("'","&#039;");
+  }
+  function escapeAttr(s){ return escapeHtml(s).replaceAll("\n"," "); }
+
+  function toCSV(items) {
+    const cols = [
+      "numeroControlePNCP","modalidadeNome","situacaoCompraNome","orgao_razaosocial",
+      "uf","municipio","dataAberturaProposta","dataEncerramentoProposta","dataPublicacaoPncp",
+      "valorTotalEstimado","objetoCompra","informacaoComplementar","linkSistemaOrigem"
+    ];
+
+    const rows = [cols.join(";")];
+    for (const it of items) {
+      const row = [
+        it.numeroControlePNCP || "",
+        getModalidade(it) || "",
+        getSituacao(it) || "",
+        getOrgao(it) || "",
+        getUF(it) || "",
+        getMunicipio(it) || "",
+        it.dataAberturaProposta || "",
+        it.dataEncerramentoProposta || it.dataEncerramentoProp || "",
+        it.dataPublicacaoPncp || "",
+        it.valorTotalEstimado ?? "",
+        (it.objetoCompra || "").toString().replaceAll("\n"," ").trim(),
+        (it.informacaoComplementar || "").toString().replaceAll("\n"," ").trim(),
+        it.linkSistemaOrigem || ""
+      ].map(v => `"${String(v).replaceAll('"','""')}"`);
+      rows.push(row.join(";"));
+    }
+    return rows.join("\n");
+  }
+
+  function download(filename, content, mime) {
+    const blob = new Blob([content], { type: mime });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 800);
+  }
+
+  function saveForm() {
+    const data = {
+      keywords: el("keywords").value,
+      scope: el("scope").value,
+      uf: el("uf").value,
+      dateStart: el("dateStart").value,
+      dateEnd: el("dateEnd").value,
+      dateField: el("dateField").value,
+      modalidade: el("modalidade").value,
+      pageSize: el("pageSize").value,
+      maxPages: el("maxPages").value,
+      advanced: el("advanced").value
+    };
+    localStorage.setItem("pncp_search_form", JSON.stringify(data));
+  }
+
+  function loadForm() {
+    const raw = localStorage.getItem("pncp_search_form");
+    if (!raw) return;
+    try {
+      const d = JSON.parse(raw);
+      if (!d || typeof d !== "object") return;
+      el("keywords").value = d.keywords ?? "";
+      el("scope").value = d.scope ?? "proposta";
+      el("uf").value = d.uf ?? "";
+      el("dateStart").value = d.dateStart ?? "";
+      el("dateEnd").value = d.dateEnd ?? "";
+      el("dateField").value = d.dateField ?? "encerramento";
+      el("modalidade").value = d.modalidade ?? "";
+      el("pageSize").value = d.pageSize ?? "50";
+      el("maxPages").value = d.maxPages ?? "5";
+      el("advanced").value = d.advanced ?? "";
+    } catch {}
+  }
+
+  function setQuickDays(days) {
+    const start = new Date();
+    const end = new Date();
+    end.setDate(end.getDate() + days);
+
+    const toInput = (d) => {
+      const y = d.getFullYear();
+      const m = String(d.getMonth()+1).padStart(2,"0");
+      const da = String(d.getDate()).padStart(2,"0");
+      return `${y}-${m}-${da}`;
+    };
+
+    el("dateStart").value = toInput(start);
+    el("dateEnd").value = toInput(end);
+  }
+
+  async function doSearch() {
+    clearLog();
+    setPill("warn", "consultando…");
+    el("btnSearch").disabled = true;
+    el("btnExportCsv").disabled = true;
+    el("btnExportJson").disabled = true;
+
+    // validação
+    const warn = validateInputs();
+    if (warn) {
+      setPill("bad", "verifique filtros");
+      setLog(warn, true);
+      el("btnSearch").disabled = false;
+      return;
+    }
+
+    saveForm();
+
+    const { endpoint, params, pageSize, maxPages } = buildEndpointAndParams();
+    const modalidades = parseModalidadeList(el("modalidade").value);
+
+    if (!endpoint) {
+      setPill("bad", "parâmetros inválidos");
+      el("btnSearch").disabled = false;
+      return;
+    }
+
+    // se faltou dataFinal/dataInicial, eu aviso e paro
+    if ((el("scope").value === "proposta" && !params.get("dataFinal")) ||
+        (el("scope").value === "publicacao" && (!params.get("dataInicial") || !params.get("dataFinal")))) {
+      setPill("bad", "datas faltando");
+      setLog("Eu preciso preencher as datas para consultar a API (dataFinal e/ou dataInicial).", true);
+      el("btnSearch").disabled = false;
+      return;
+    }
+
+    // buscar por modalidade (aceita lista)
+    const t0 = performance.now();
+    try {
+      let rawAll = [];
+      let idx = 0;
+
+      for (const mod of modalidades) {
+        idx++;
+        setPill("warn", `consultando… (${idx}/${modalidades.length})`);
+        const p = new URLSearchParams(params.toString());
+        p.set("codigoModalidadeContratacao", mod);
+
+        const chunk = await fetchAllPages(endpoint, p, pageSize, maxPages);
+        rawAll.push(...chunk);
+        setLog(`Modalidade ${mod}: ${chunk.length} registro(s)`, false);
+      }
+
+      // remove duplicados
+      rawAll = dedupeByNumeroControlePNCP(rawAll);
+
+      state.raw = rawAll;
+      const filtered = filterAndSort(rawAll);
+      state.filtered = filtered;
+
+      renderTable(filtered);
+
+      el("kpiRaw").textContent = String(rawAll.length);
+      el("kpiShown").textContent = String(filtered.length);
+
+      const t1 = performance.now();
+      el("kpiTime").textContent = `${Math.round(t1 - t0)} ms`;
+
+      if (!filtered.length) {
+        setPill("warn", "0 resultados após filtro");
+        setLog("Dica: troque o campo de data para 'Publicação' se estiver consultando por Publicação; ou reduza palavras-chave (modo AND).", false);
+      } else {
+        setPill("good", "ok");
+      }
+
+      el("btnExportCsv").disabled = !filtered.length;
+      el("btnExportJson").disabled = !filtered.length;
+
+    } catch (err) {
+      console.error(err);
+      setPill("bad", "falha");
+      setLog(`Falha ao consultar API. ${err?.message || err}`, true);
+      if (state.lastUrl) {
+        setLog(`Última URL: ${state.lastUrl}`, false);
+      }
+    } finally {
+      el("btnSearch").disabled = false;
+    }
+  }
+
+
+  function doReset() {
+    el("keywords").value = "";
+    el("scope").value = "proposta";
+    el("uf").value = "";
+    el("dateField").value = "encerramento";
+    el("modalidade").value = "";
+    el("pageSize").value = "50";
+    el("maxPages").value = "5";
+    el("advanced").value = "";
+
+    // datas padrão: hoje -> +30
+    setQuickDays(30);
+
+    state.raw = [];
+    state.filtered = [];
+    renderTable([]);
+    clearLog();
+
+    el("kpiRaw").textContent = "0";
+    el("kpiShown").textContent = "0";
+    el("kpiTime").textContent = "—";
+    setPill("", "PNCP");
+    el("btnExportCsv").disabled = true;
+    el("btnExportJson").disabled = true;
+
+    localStorage.removeItem("pncp_search_form");
+  }
+
+  
+  // Ajuste automático do campo de data conforme o escopo
+  function syncDateFieldWithScope(force=false) {
+    const scope = el("scope").value;
+    const desired = (scope === "publicacao") ? "publicacao" : "encerramento";
+    if (force || !el("dateField").dataset.userSet) {
+      el("dateField").value = desired;
+    }
+  }
+
+  el("dateField").addEventListener("change", () => {
+    el("dateField").dataset.userSet = "1";
+  });
+
+  el("scope").addEventListener("change", () => {
+    // se o usuário não mexeu no campo de data, troco para o padrão do escopo
+    syncDateFieldWithScope(false);
+  });
+
+// UI hooks
+  el("btnSearch").addEventListener("click", doSearch);
+  el("btnReset").addEventListener("click", doReset);
+
+  el("btnQuick30").addEventListener("click", () => setQuickDays(30));
+  el("btnQuick60").addEventListener("click", () => setQuickDays(60));
+  el("btnQuick90").addEventListener("click", () => setQuickDays(90));
+
+  el("btnExportCsv").addEventListener("click", () => {
+    const csv = toCSV(state.filtered);
+    download(`pncp_resultados_${Date.now()}.csv`, csv, "text/csv;charset=utf-8");
+  });
+
+  el("btnExportJson").addEventListener("click", () => {
+    download(`pncp_resultados_${Date.now()}.json`, JSON.stringify(state.filtered, null, 2), "application/json;charset=utf-8");
+  });
+
+  // init
+  el("todayLabel").textContent = `Hoje: ${nowBRLabel()}`;
+
+  loadForm();
+  syncDateFieldWithScope(true);
+  // se não tiver datas carregadas, seto padrão
+  if (!el("dateStart").value && !el("dateEnd").value) {
+    setQuickDays(30);
+  }
+
+  setPill("", "PNCP");
+})();
+</script>
+</body>
+</html>
