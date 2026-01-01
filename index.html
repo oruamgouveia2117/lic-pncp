@@ -134,6 +134,10 @@
       margin-right:6px; margin-bottom:6px;
       white-space:nowrap;
     }
+
+    .tag input{ margin-right:6px; vertical-align:middle }
+    .tag.modall{ border-style:solid; color:#e8eefc }
+    .tag.modall small{ color:var(--muted) }
     .right{display:flex; gap:10px; align-items:center; flex-wrap:wrap; justify-content:flex-end}
     .kpi{
       display:flex; gap:10px; flex-wrap:wrap;
@@ -168,8 +172,10 @@
 <header>
   <h1>Buscador de Licitações (Brasil / PNCP)</h1>
   <div class="note">
-    <strong>Atenção:</strong> o PNCP bloqueia requisições diretas do navegador (CORS). 
-    Abra esta página pelo servidor proxy (ex.: <span class="mono">http://127.0.0.1:5000</span>).
+    <strong>Atenção:</strong> o PNCP bloqueia requisições diretas do navegador (CORS).
+    Este app contorna isso quando hospedado no Netlify, usando um proxy (Netlify Function) no caminho
+    <span class="mono">/api/consulta/v1</span>.
+    Se eu abrir o HTML direto do disco, o proxy não roda — então eu preciso usar um servidor local (ex.: Live Server) ou publicar no Netlify.
   </div>
   <p class="sub">
     Eu filtro por palavra-chave (ramo), UF e período. A fonte é a API pública do PNCP:
@@ -240,9 +246,31 @@
             </select>
           </div>
           <div>
-            <label for="modalidade">Código(s) de modalidade (obrigatório)</label>
-            <input id="modalidade" placeholder="Ex.: 6,4,8 (separe por vírgula) — ou ALL" inputmode="text" />
-            <div class="small">Obrigatório no PNCP. Aceita lista (ex.: <span class="mono">6,4,8</span>) ou <span class="mono">ALL</span> (1–13). Referência: tabela do manual PNCP.</div>
+            
+<label>Modalidades (obrigatório no PNCP)</label>
+<div class="small">Se eu não quiser restringir, deixo <b>Todas</b> marcado.</div>
+
+<div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:8px" aria-label="Seleção de modalidades">
+  <label class="tag modall"><input type="checkbox" id="modalAll" checked />Todas</label>
+  <label class="tag"><input type="checkbox" class="modCheck" value="1" />1</label>
+  <label class="tag"><input type="checkbox" class="modCheck" value="2" />2</label>
+  <label class="tag"><input type="checkbox" class="modCheck" value="3" />3</label>
+  <label class="tag"><input type="checkbox" class="modCheck" value="4" />4</label>
+  <label class="tag"><input type="checkbox" class="modCheck" value="5" />5</label>
+  <label class="tag"><input type="checkbox" class="modCheck" value="6" />6</label>
+  <label class="tag"><input type="checkbox" class="modCheck" value="7" />7</label>
+  <label class="tag"><input type="checkbox" class="modCheck" value="8" />8</label>
+  <label class="tag"><input type="checkbox" class="modCheck" value="9" />9</label>
+  <label class="tag"><input type="checkbox" class="modCheck" value="10" />10</label>
+  <label class="tag"><input type="checkbox" class="modCheck" value="11" />11</label>
+  <label class="tag"><input type="checkbox" class="modCheck" value="12" />12</label>
+  <label class="tag"><input type="checkbox" class="modCheck" value="13" />13</label>
+</div>
+
+<div class="small" style="margin-top:8px">
+  Obs.: os códigos 1–13 são os códigos de modalidade do PNCP. Eu consulto uma modalidade por vez e junto os resultados (deduplicando pelo <span class="mono">numeroControlePNCP</span>). Se eu marcar <b>Todas</b>, o app faz mais requisições (pode ficar mais lento).
+</div>
+
           </div>
         </div>
 
@@ -264,14 +292,6 @@
               <option value="10">10</option>
               <option value="20">20</option>
             </select>
-          </div>
-        </div>
-
-        <div class="row1">
-          <div>
-            <label for="advanced">Filtros avançados (opcional)</label>
-            <textarea id="advanced" placeholder='JSON simples. Ex.: {"cnpj":"00059311000126","codigoMunicipioIbge":"4202404"}'></textarea>
-            <div class="small">Campos aceitos (dependem do endpoint): <span class="mono">cnpj</span>, <span class="mono">codigoMunicipioIbge</span>, <span class="mono">codigoUnidadeAdministrativa</span>, <span class="mono">idUsuario</span>.</div>
           </div>
         </div>
 
@@ -343,7 +363,8 @@
         </div>
 
         <div class="hint" style="margin-top:12px">
-          <b>Se der erro de CORS (Failed to fetch):</b> eu rodo um proxy simples local (ex.: Flask) e aponto o app para ele.
+          <b>Se der erro de CORS (Failed to fetch):</b> eu confirmo se estou acessando pelo Netlify (com o redirect ativo) ou por um servidor local.
+          Abrir o HTML direto do disco geralmente não aciona o proxy.
           Como alternativa, eu posso abrir a busca direto no PNCP pelo navegador e usar este HTML só como “organizador”.
           <div class="small" style="margin-top:6px">
             Exemplo de URL base usada aqui: <span class="mono">/api/consulta/v1</span>.
@@ -411,12 +432,6 @@
     if (!ks.length) return true;
     // regra: todos os tokens devem aparecer em algum lugar (AND)
     return ks.every(k => t.includes(k));
-  }
-
-  function tryParseJson(s) {
-    const txt = (s || "").trim();
-    if (!txt) return null;
-    try { return JSON.parse(txt); } catch { return null; }
   }
 
   function extractArray(json) {
@@ -488,13 +503,14 @@
   function buildEndpointAndParams() {
     const scope = el("scope").value; // proposta | publicacao
     const uf = el("uf").value.trim();
-const start = el("dateStart").value;
+    const start = el("dateStart").value;
     const end = el("dateEnd").value;
-
-    const adv = tryParseJson(el("advanced").value);
 
     const pageSize = el("pageSize").value;
     const maxPages = Number(el("maxPages").value);
+
+    const dStart = yyyyMMddFromDateInput(start);
+    const dEnd = yyyyMMddFromDateInput(end);
 
     let endpoint = "";
     const params = new URLSearchParams();
@@ -502,39 +518,41 @@ const start = el("dateStart").value;
     if (scope === "proposta") {
       endpoint = "/contratacoes/proposta";
       // no manual: dataFinal obrigatório (AAAAMMDD)
-      params.set("dataFinal", yyyyMMddFromDateInput(end) || yyyyMMddFromDateInput(start) || "");
-if (uf) params.set("uf", uf);
+      params.set("dataFinal", dEnd || dStart || "");
     } else {
       endpoint = "/contratacoes/publicacao";
-      params.set("dataInicial", yyyyMMddFromDateInput(start) || "");
-      params.set("dataFinal", yyyyMMddFromDateInput(end) || "");
-if (uf) params.set("uf", uf);
+      // na prática, eu sempre envio início e fim (se o usuário preencher só um, eu replico)
+      params.set("dataInicial", dStart || dEnd || "");
+      params.set("dataFinal", dEnd || dStart || "");
     }
 
-    if (adv && typeof adv === "object") {
-      for (const [k,v] of Object.entries(adv)) {
-        if (v === null || v === undefined || v === "") continue;
-        params.set(k, String(v));
-      }
-    }
+    if (uf) params.set("uf", uf);
 
     return { endpoint, params, pageSize, maxPages };
   }
 
-  function parseModalidadeList(input) {
-    const raw = (input || "").trim();
-    if (!raw) return [];
-    if (/^all$/i.test(raw)) {
-      return Array.from({length: 13}, (_,i)=>String(i+1));
+  const MOD_CODES = Array.from({length: 13}, (_, i) => String(i + 1));
+
+  function getSelectedModalidades() {
+    const all = !!el("modalAll")?.checked;
+    if (all) return MOD_CODES.slice();
+    const checks = Array.from(document.querySelectorAll(".modCheck:checked")).map(c => String(c.value));
+    return checks.filter(v => MOD_CODES.includes(v));
+  }
+
+  function applyModalUI(all, selected = []) {
+    const allBox = el("modalAll");
+    const checks = Array.from(document.querySelectorAll(".modCheck"));
+    if (!allBox) return;
+
+    allBox.checked = !!all;
+
+    if (allBox.checked) {
+      checks.forEach(c => { c.checked = true; c.disabled = true; });
+    } else {
+      const sel = new Set(selected.map(String));
+      checks.forEach(c => { c.disabled = false; c.checked = sel.has(String(c.value)); });
     }
-    // aceita "6,4,8" ou "6 4 8" ou "6;4;8"
-    const parts = raw.split(/[^0-9]+/).filter(Boolean);
-    const uniq = [...new Set(parts)];
-    // valida 1..13
-    return uniq.filter(x => {
-      const n = Number(x);
-      return Number.isInteger(n) && n >= 1 && n <= 13;
-    });
   }
 
   function dedupeByNumeroControlePNCP(items) {
@@ -565,9 +583,9 @@ if (uf) params.set("uf", uf);
     }
 
     // Regras do manual: ambos serviços exigem codigoModalidadeContratacao
-    const mods = parseModalidadeList(el("modalidade").value);
+    const mods = getSelectedModalidades();
     if (!mods.length) {
-      return "Erro: preencha 'Código(s) de modalidade'. Ex.: 6 (Pregão Eletrônico) ou 6,4,8. Você também pode usar ALL (1–13).";
+      return "Selecione pelo menos uma modalidade (1–13) ou deixe \"Todas\" marcado.";
     }
     return "";
   }
@@ -676,11 +694,20 @@ if (uf) params.set("uf", uf);
     pill.innerHTML = `<b>API</b><span class="mono">${text}</span>`;
   }
 
+  
   function setLog(msg, isDanger=false) {
     const box = el("logBox");
     box.style.display = "block";
     box.textContent = msg;
     box.classList.toggle("danger", !!isDanger);
+  }
+
+  function pushLog(msg, isDanger=false) {
+    const box = el("logBox");
+    box.style.display = "block";
+    const prev = box.textContent || "";
+    box.textContent = prev ? (prev + "\n" + msg) : msg;
+    if (isDanger) box.classList.add("danger");
   }
 
   function clearLog() {
@@ -831,10 +858,10 @@ if (uf) params.set("uf", uf);
       dateStart: el("dateStart").value,
       dateEnd: el("dateEnd").value,
       dateField: el("dateField").value,
-      modalidade: el("modalidade").value,
+      modalAll: !!el("modalAll")?.checked,
+      modalidades: getSelectedModalidades(),
       pageSize: el("pageSize").value,
-      maxPages: el("maxPages").value,
-      advanced: el("advanced").value
+      maxPages: el("maxPages").value
     };
     localStorage.setItem("pncp_search_form", JSON.stringify(data));
   }
@@ -851,10 +878,19 @@ if (uf) params.set("uf", uf);
       el("dateStart").value = d.dateStart ?? "";
       el("dateEnd").value = d.dateEnd ?? "";
       el("dateField").value = d.dateField ?? "encerramento";
-      el("modalidade").value = d.modalidade ?? "";
+      // migração: versões antigas salvavam "modalidade" como texto (ex.: "6,4,8" ou "ALL")
+      const legacyRaw = String(d.modalidade ?? "").trim();
+      const legacyUpper = legacyRaw.toUpperCase();
+      const inferredAll = (d.modalAll !== undefined) ? !!d.modalAll : (!legacyRaw || legacyUpper === "ALL");
+
+      let inferredMods = Array.isArray(d.modalidades) ? d.modalidades : [];
+      if (!inferredMods.length && legacyRaw && legacyUpper !== "ALL") {
+        inferredMods = legacyRaw.split(",").map(s => s.trim()).filter(Boolean);
+      }
+
+      applyModalUI(inferredAll, inferredMods);
       el("pageSize").value = d.pageSize ?? "50";
       el("maxPages").value = d.maxPages ?? "5";
-      el("advanced").value = d.advanced ?? "";
     } catch {}
   }
 
@@ -893,7 +929,7 @@ if (uf) params.set("uf", uf);
     saveForm();
 
     const { endpoint, params, pageSize, maxPages } = buildEndpointAndParams();
-    const modalidades = parseModalidadeList(el("modalidade").value);
+    const modalidades = getSelectedModalidades();
 
     if (!endpoint) {
       setPill("bad", "parâmetros inválidos");
@@ -924,7 +960,7 @@ if (uf) params.set("uf", uf);
 
         const chunk = await fetchAllPages(endpoint, p, pageSize, maxPages);
         rawAll.push(...chunk);
-        setLog(`Modalidade ${mod}: ${chunk.length} registro(s)`, false);
+        pushLog(`Modalidade ${mod}: ${chunk.length} registro(s)`);
       }
 
       // remove duplicados
@@ -946,7 +982,7 @@ if (uf) params.set("uf", uf);
         setPill("warn", "0 resultados após filtro");
         setLog("Dica: troque o campo de data para 'Publicação' se estiver consultando por Publicação; ou reduza palavras-chave (modo AND).", false);
       } else {
-        setPill("good", "ok");
+        setPill("ok", "ok");
       }
 
       el("btnExportCsv").disabled = !filtered.length;
@@ -957,7 +993,7 @@ if (uf) params.set("uf", uf);
       setPill("bad", "falha");
       setLog(`Falha ao consultar API. ${err?.message || err}`, true);
       if (state.lastUrl) {
-        setLog(`Última URL: ${state.lastUrl}`, false);
+        pushLog(`Última URL: ${state.lastUrl}`);
       }
     } finally {
       el("btnSearch").disabled = false;
@@ -970,10 +1006,9 @@ if (uf) params.set("uf", uf);
     el("scope").value = "proposta";
     el("uf").value = "";
     el("dateField").value = "encerramento";
-    el("modalidade").value = "";
+    applyModalUI(true);
     el("pageSize").value = "50";
     el("maxPages").value = "5";
-    el("advanced").value = "";
 
     // datas padrão: hoje -> +30
     setQuickDays(30);
@@ -1034,7 +1069,43 @@ if (uf) params.set("uf", uf);
 
   loadForm();
   syncDateFieldWithScope(true);
+  // Modalidades: padrão é "Todas"
+  if (el("modalAll")) {
+    // primeiro uso: mantém "Todas" ativo
+    if (!localStorage.getItem("pncp_search_form")) {
+      applyModalUI(true);
+    }
+
+    // alterna entre "Todas" e "Selecionar"
+    el("modalAll").addEventListener("change", () => {
+      if (el("modalAll").checked) {
+        applyModalUI(true);
+      } else {
+        // ao sair de "Todas", se não houver seleção salva, eu deixo 6 como padrão (ajustável)
+        let saved = [];
+        try {
+          const d = JSON.parse(localStorage.getItem("pncp_search_form") || "{}");
+          saved = Array.isArray(d.modalidades) ? d.modalidades : [];
+        } catch {}
+        applyModalUI(false, saved.length ? saved : ["6"]);
+      }
+      saveForm();
+    });
+
+    // marcação manual desativa "Todas" automaticamente
+    document.querySelectorAll(".modCheck").forEach(chk => {
+      chk.addEventListener("change", () => {
+        if (el("modalAll").checked) {
+          el("modalAll").checked = false;
+          applyModalUI(false, getSelectedModalidades());
+        }
+        saveForm();
+      });
+    });
+  }
+
   // se não tiver datas carregadas, seto padrão
+
   if (!el("dateStart").value && !el("dateEnd").value) {
     setQuickDays(30);
   }
