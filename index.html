@@ -161,6 +161,52 @@
     .danger{color:#ffb3bb}
   
 .note{background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;padding:10px 12px;margin:10px 0;font-size:14px}
+
+
+    /* Modalidades (seleção por nome) */
+    .modalidades-box{
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.12);
+      border-radius: 14px;
+      padding: 12px;
+    }
+    .chk{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      user-select:none;
+      font-weight:700;
+      margin-bottom:10px;
+    }
+    .chk input{ width:18px; height:18px; }
+    .mods-list{
+      display:grid;
+      grid-template-columns: repeat(2, minmax(0,1fr));
+      gap:10px 12px;
+      padding: 8px 0 4px;
+    }
+    .mod-item{
+      display:flex;
+      gap:10px;
+      align-items:flex-start;
+      padding: 10px 10px;
+      border:1px solid rgba(255,255,255,.08);
+      border-radius: 12px;
+      background: rgba(255,255,255,.03);
+    }
+    .mod-item input{ width:16px; height:16px; margin-top:2px; }
+    .mod-item .code{
+      font-family: var(--mono);
+      font-size: 12px;
+      opacity:.85;
+      border:1px solid rgba(255,255,255,.12);
+      padding:2px 6px;
+      border-radius: 999px;
+    }
+    .mod-item .name{ font-size: 13px; line-height: 1.25; }
+    @media (max-width: 760px){
+      .mods-list{ grid-template-columns: 1fr; }
+    }
 </style>
 </head>
 
@@ -239,10 +285,17 @@
               <option value="atualizacao">Atualização</option>
             </select>
           </div>
+          
           <div>
-            <label for="modalidade">Código(s) de modalidade (obrigatório)</label>
-            <input id="modalidade" placeholder="Ex.: 6,4,8 (separe por vírgula) — ou ALL" inputmode="text" />
-            <div class="small">Obrigatório no PNCP. Aceita lista (ex.: <span class="mono">6,4,8</span>) ou <span class="mono">ALL</span> (1–13). Referência: tabela do manual PNCP.</div>
+            <label>Modalidades (obrigatório)</label>
+            <div class="modalidades-box">
+              <label class="chk">
+                <input type="checkbox" id="mods_all" checked />
+                <span>Todas</span>
+              </label>
+              <div id="mods_list" class="mods-list"></div>
+              <div class="small">Marque <b>Todas</b> ou selecione uma ou mais modalidades abaixo.</div>
+            </div>
           </div>
         </div>
 
@@ -266,13 +319,6 @@
             </select>
           </div>
         </div>
-
-        <div class="row1">
-          <div>
-            <label for="advanced">Filtros avançados (opcional)</label>
-            <textarea id="advanced" placeholder='JSON simples. Ex.: {"cnpj":"00059311000126","codigoMunicipioIbge":"4202404"}'></textarea>
-            <div class="small">Campos aceitos (dependem do endpoint): <span class="mono">cnpj</span>, <span class="mono">codigoMunicipioIbge</span>, <span class="mono">codigoUnidadeAdministrativa</span>, <span class="mono">idUsuario</span>.</div>
-          </div>
         </div>
 
         <div class="btns">
@@ -357,7 +403,109 @@
 
 <script>
 (() => {
- const API_BASE = "/.netlify/functions/pncp";
+  const API_BASE = "/api/consulta/v1";
+
+  // Modalidades de contratação (PNCP API Consultas – v1.0, tabela 5.2)
+  const MODALIDADES = [
+    { id: 1, nome: "Leilão - Eletrônico" },
+    { id: 2, nome: "Diálogo Competitivo" },
+    { id: 3, nome: "Concurso" },
+    { id: 4, nome: "Concorrência - Eletrônica" },
+    { id: 5, nome: "Concorrência - Presencial" },
+    { id: 6, nome: "Pregão - Eletrônico" },
+    { id: 7, nome: "Pregão - Presencial" },
+    { id: 8, nome: "Dispensa de Licitação" },
+    { id: 9, nome: "Inexigibilidade" },
+    { id: 10, nome: "Manifestação de Interesse" },
+    { id: 11, nome: "Pré-qualificação" },
+    { id: 12, nome: "Credenciamento" },
+    { id: 13, nome: "Leilão - Presencial" },
+  ];
+
+  function renderModalidades() {
+    const host = document.getElementById("mods_list");
+    if (!host) return;
+    host.innerHTML = MODALIDADES.map(m => {
+      return `
+        <label class="mod-item" title="${m.nome} (código ${m.id})">
+          <input class="mod-check" type="checkbox" value="${m.id}" />
+          <div>
+            <div class="name">${escapeHtml(m.nome)}</div>
+            <div class="code">cód. ${m.id}</div>
+          </div>
+        </label>
+      `;
+    }).join("");
+
+    const all = document.getElementById("mods_all");
+    const checks = () => Array.from(document.querySelectorAll(".mod-check"));
+
+    function setDisabled(disabled) {
+      checks().forEach(c => { c.disabled = disabled; });
+      if (disabled) checks().forEach(c => { c.checked = false; });
+    }
+
+    all?.addEventListener("change", () => {
+      if (all.checked) {
+        setDisabled(true);
+      } else {
+        setDisabled(false);
+      }
+      saveForm();
+    });
+
+    checks().forEach(c => {
+      c.addEventListener("change", () => {
+        const any = checks().some(x => x.checked);
+        if (any) all.checked = false;
+        // se o usuário desmarcar tudo, volta pra "Todas"
+        if (!any) {
+          all.checked = true;
+          setDisabled(true);
+        }
+        saveForm();
+      });
+    });
+
+    // padrão: Todas
+    if (all) {
+      all.checked = true;
+      setDisabled(true);
+    }
+  }
+
+  function getModalidadesState() {
+    const all = document.getElementById("mods_all")?.checked ?? true;
+    const selected = Array.from(document.querySelectorAll(".mod-check:checked")).map(x => Number(x.value)).filter(n => Number.isInteger(n));
+    return { all, selected };
+  }
+
+  function setModalidadesState(state) {
+    const allEl = document.getElementById("mods_all");
+    const checks = Array.from(document.querySelectorAll(".mod-check"));
+    const all = !!state?.all;
+
+    if (allEl) allEl.checked = all;
+
+    if (all) {
+      checks.forEach(c => { c.checked = false; c.disabled = true; });
+    } else {
+      const set = new Set((state?.selected || []).map(Number));
+      checks.forEach(c => { c.disabled = false; c.checked = set.has(Number(c.value)); });
+      // se vazio, volta pra "Todas"
+      if (!checks.some(c => c.checked)) {
+        if (allEl) allEl.checked = true;
+        checks.forEach(c => { c.checked = false; c.disabled = true; });
+      }
+    }
+  }
+
+  function getSelectedModalidades() {
+    const st = getModalidadesState();
+    if (st.all) return MODALIDADES.map(m => String(m.id));
+    const uniq = [...new Set(st.selected)].filter(n => n >= 1 && n <= 13);
+    return uniq.map(String);
+  }
 
   const el = (id) => document.getElementById(id);
 
@@ -491,8 +639,6 @@
 const start = el("dateStart").value;
     const end = el("dateEnd").value;
 
-    const adv = tryParseJson(el("advanced").value);
-
     const pageSize = el("pageSize").value;
     const maxPages = Number(el("maxPages").value);
 
@@ -511,22 +657,8 @@ if (uf) params.set("uf", uf);
 if (uf) params.set("uf", uf);
     }
 
-    if (adv && typeof adv === "object") {
-      for (const [k,v] of Object.entries(adv)) {
-        if (v === null || v === undefined || v === "") continue;
-        params.set(k, String(v));
-      }
-    }
-
     return { endpoint, params, pageSize, maxPages };
   }
-
-  function parseModalidadeList(input) {
-    const raw = (input || "").trim();
-    if (!raw) return [];
-    if (/^all$/i.test(raw)) {
-      return Array.from({length: 13}, (_,i)=>String(i+1));
-    }
     // aceita "6,4,8" ou "6 4 8" ou "6;4;8"
     const parts = raw.split(/[^0-9]+/).filter(Boolean);
     const uniq = [...new Set(parts)];
@@ -564,10 +696,10 @@ if (uf) params.set("uf", uf);
       return "A data inicial não pode ser maior que a data final.";
     }
 
-    // Regras do manual: ambos serviços exigem codigoModalidadeContratacao
-    const mods = parseModalidadeList(el("modalidade").value);
+    // Regras do manual: os serviços exigem ao menos 1 modalidade (ou "todas")
+    const mods = getSelectedModalidades();
     if (!mods.length) {
-      return "Erro: preencha 'Código(s) de modalidade'. Ex.: 6 (Pregão Eletrônico) ou 6,4,8. Você também pode usar ALL (1–13).";
+      return "Selecione ao menos uma modalidade (ou marque 'Todas').";
     }
     return "";
   }
@@ -831,10 +963,9 @@ if (uf) params.set("uf", uf);
       dateStart: el("dateStart").value,
       dateEnd: el("dateEnd").value,
       dateField: el("dateField").value,
-      modalidade: el("modalidade").value,
+      modalidades: getModalidadesState(),
       pageSize: el("pageSize").value,
-      maxPages: el("maxPages").value,
-      advanced: el("advanced").value
+      maxPages: el("maxPages").value
     };
     localStorage.setItem("pncp_search_form", JSON.stringify(data));
   }
@@ -851,11 +982,10 @@ if (uf) params.set("uf", uf);
       el("dateStart").value = d.dateStart ?? "";
       el("dateEnd").value = d.dateEnd ?? "";
       el("dateField").value = d.dateField ?? "encerramento";
-      el("modalidade").value = d.modalidade ?? "";
+      setModalidadesState(d.modalidades);
       el("pageSize").value = d.pageSize ?? "50";
       el("maxPages").value = d.maxPages ?? "5";
-      el("advanced").value = d.advanced ?? "";
-    } catch {}
+} catch {}
   }
 
   function setQuickDays(days) {
@@ -893,7 +1023,7 @@ if (uf) params.set("uf", uf);
     saveForm();
 
     const { endpoint, params, pageSize, maxPages } = buildEndpointAndParams();
-    const modalidades = parseModalidadeList(el("modalidade").value);
+    const modalidades = getSelectedModalidades();
 
     if (!endpoint) {
       setPill("bad", "parâmetros inválidos");
@@ -970,10 +1100,9 @@ if (uf) params.set("uf", uf);
     el("scope").value = "proposta";
     el("uf").value = "";
     el("dateField").value = "encerramento";
-    el("modalidade").value = "";
+    setModalidadesState({ all: true, selected: [] });
     el("pageSize").value = "50";
     el("maxPages").value = "5";
-    el("advanced").value = "";
 
     // datas padrão: hoje -> +30
     setQuickDays(30);
@@ -1032,6 +1161,7 @@ if (uf) params.set("uf", uf);
   // init
   el("todayLabel").textContent = `Hoje: ${nowBRLabel()}`;
 
+  renderModalidades();
   loadForm();
   syncDateFieldWithScope(true);
   // se não tiver datas carregadas, seto padrão
