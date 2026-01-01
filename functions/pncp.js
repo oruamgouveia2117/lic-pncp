@@ -5,11 +5,22 @@
 exports.handler = async (event) => {
   const upstreamBase = "https://pncp.gov.br/api/consulta/v1/";
 
-  const prefix = "/.netlify/functions/pncp/";
+  // Netlify pode repassar o path original (/api/consulta/v1/...) ou o path da function (/.netlify/functions/...)
+  const fnPrefix = "/.netlify/functions/pncp/";
+  const apiPrefix = "/api/consulta/v1/";
   const path = (event.path || "");
-  const splat = path.startsWith(prefix) ? path.slice(prefix.length) : "";
 
-  if (!splat || splat.includes("..")) {
+  // tenta extrair o ":splat" de forma resiliente
+  let splat = "";
+  if (typeof event.pathParameters?.splat === "string" && event.pathParameters.splat) {
+    splat = event.pathParameters.splat;
+  } else if (path.startsWith(fnPrefix)) {
+    splat = path.slice(fnPrefix.length);
+  } else if (path.startsWith(apiPrefix)) {
+    splat = path.slice(apiPrefix.length);
+  }
+  splat = splat.replace(/^\/+/, "");
+if (!splat || splat.includes("..")) {
     return {
       statusCode: 400,
       headers: { "content-type": "application/json; charset=utf-8" },
